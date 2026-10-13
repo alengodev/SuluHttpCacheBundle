@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Alengo\SuluHttpCacheBundle\EventSubscriber;
 
+use Alengo\SuluHttpCacheBundle\Matcher\NamePatternMatcher;
 use FOS\HttpCache\SymfonyCache\CacheEvent;
 use FOS\HttpCache\SymfonyCache\Events;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -117,14 +118,23 @@ final class CtaInterestsSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $allowRegex = '/^(?:' . \implode(')$|^(?:', $this->allowList) . ')$/i';
+        $allowRegex = NamePatternMatcher::compile($this->allowList);
+        if (null === $allowRegex) {
+            return;
+        }
 
-        foreach (\array_map(strval(...), \array_keys($params)) as $name) {
+        // Keep only the matched tracking parameters, not the whole query string — otherwise an
+        // unbounded set of arbitrary extra params would be stored in (and could overflow) the cookie.
+        $interests = [];
+        foreach ($params as $key => $value) {
+            $name = (string) $key;
             if (1 === \preg_match($allowRegex, $name)) {
-                $request->attributes->set('interests', $params);
-
-                return;
+                $interests[$name] = $value;
             }
+        }
+
+        if ([] !== $interests) {
+            $request->attributes->set('interests', $interests);
         }
     }
 

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Alengo\SuluHttpCacheBundle\EventSubscriber;
 
+use Alengo\SuluHttpCacheBundle\Matcher\NamePatternMatcher;
 use FOS\HttpCache\SymfonyCache\CacheEvent;
 use FOS\HttpCache\SymfonyCache\Events;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -100,10 +101,14 @@ final class StripQueryParametersSubscriber implements EventSubscriberInterface
 
     private function filterQueryParams(Request $request): void
     {
-        // Match against the whole param name (anchored, case-insensitive). An empty
-        // deny list means "remove everything"; an empty allow list protects nothing.
-        $denyRegex = '/^(?:' . \implode(')$|^(?:', $this->denyList ?: ['.*']) . ')$/i';
-        $allowRegex = [] !== $this->allowList ? '/^(?:' . \implode(')$|^(?:', $this->allowList) . ')$/i' : null;
+        // Match against the whole param name (anchored, case-insensitive). An empty deny list
+        // means "remove everything"; an empty allow list protects nothing. Invalid patterns are
+        // dropped by the matcher, so a malformed config entry can never strip more than intended.
+        $denyRegex = NamePatternMatcher::compile($this->denyList ?: ['.*']);
+        if (null === $denyRegex) {
+            return; // no usable deny pattern → nothing to strip
+        }
+        $allowRegex = NamePatternMatcher::compile($this->allowList);
 
         // String-cast the names — numeric names like "?1=x" would otherwise be int keys.
         foreach (\array_map(strval(...), \array_keys($request->query->all())) as $name) {

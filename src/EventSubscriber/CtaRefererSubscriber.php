@@ -80,8 +80,12 @@ final class CtaRefererSubscriber implements EventSubscriberInterface
 
     private function isExternalReferer(Request $request, string $referer): bool
     {
-        // External = the referer does not point back at our own host.
-        return !\str_contains($referer, $request->getHost());
+        // External = the referer's host differs from our own. Compare parsed hosts rather
+        // than a substring match, which would miss lookalike domains ("notexample.com"
+        // contains "example.com") and be fooled by subdomains ("example.com.attacker.test").
+        $refererHost = \parse_url($referer, \PHP_URL_HOST);
+
+        return \is_string($refererHost) && 0 !== \strcasecmp($refererHost, $request->getHost());
     }
 
     public static function getSubscribedEvents(): array
