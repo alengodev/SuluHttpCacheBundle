@@ -16,7 +16,7 @@ namespace Alengo\SuluHttpCacheBundle\DependencyInjection;
 use Alengo\SuluHttpCacheBundle\EventSubscriber\CtaInterestsSubscriber;
 use Alengo\SuluHttpCacheBundle\EventSubscriber\CtaRefererSubscriber;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\HttpKernel\DependencyInjection\Extension;
+use Symfony\Component\DependencyInjection\Extension\Extension;
 
 /**
  * Loads and validates the bundle configuration.
