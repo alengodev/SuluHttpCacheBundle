@@ -35,6 +35,9 @@ final class CtaRefererSubscriber implements EventSubscriberInterface
 
     private const LIFETIME = 3600;
 
+    /** The referer rides along with every request (and is stored with form submissions): keep it short. */
+    public const MAX_LENGTH = 255;
+
     public function __construct(
         private readonly string $cookieName = self::DEFAULT_COOKIE_NAME,
     ) {
@@ -61,7 +64,7 @@ final class CtaRefererSubscriber implements EventSubscriberInterface
         $referer = $request->headers->get('referer');
 
         if (null !== $referer && '' !== $referer && $this->isExternalReferer($request, $referer)) {
-            $request->attributes->set('referer', $referer);
+            $request->attributes->set('referer', self::page($referer));
         }
     }
 
@@ -76,6 +79,15 @@ final class CtaRefererSubscriber implements EventSubscriberInterface
         $response->headers->setCookie(
             Cookie::create($this->cookieName, $referer, \time() + self::LIFETIME),
         );
+    }
+
+    /**
+     * The referring page without query and fragment: they may hold search terms or tokens of the foreign site, and
+     * the value is stored with form submissions and mailed. Shortened to MAX_LENGTH.
+     */
+    private static function page(string $referer): string
+    {
+        return \substr((string) \preg_replace('/[?#].*$/s', '', $referer), 0, self::MAX_LENGTH);
     }
 
     private function isExternalReferer(Request $request, string $referer): bool

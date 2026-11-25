@@ -38,6 +38,15 @@ final class CtaInterestsSubscriber implements EventSubscriberInterface
 
     private const LIFETIME = 3600;
 
+    /**
+     * Limits for the cookie: anyone can send a visitor a link with tracking parameters, and the cookie rides along
+     * with every later request. Unbounded, a crafted link could push the Cookie header past the web server's limit
+     * (Apache: 8190 bytes) and lock the visitor out with "400 Bad Request" for the cookie's lifetime.
+     */
+    public const MAX_VALUE_LENGTH = 200;
+
+    public const MAX_COOKIE_LENGTH = 1024;
+
     /** @var list<string> */
     public const DEFAULT_ALLOW_LIST = [
         // Matomo
@@ -125,12 +134,20 @@ final class CtaInterestsSubscriber implements EventSubscriberInterface
 
         // Keep only the matched tracking parameters, not the whole query string — otherwise an
         // unbounded set of arbitrary extra params would be stored in (and could overflow) the cookie.
+        // Only plain values (tracking ids are strings; nested arrays are never meant), shortened, and only as many as
+        // fit into MAX_COOKIE_LENGTH.
         $interests = [];
         foreach ($params as $key => $value) {
             $name = (string) $key;
-            if (1 === \preg_match($allowRegex, $name)) {
-                $interests[$name] = $value;
+            if (!\is_scalar($value) || 1 !== \preg_match($allowRegex, $name)) {
+                continue;
             }
+
+            $candidate = [...$interests, $name => \mb_substr((string) $value, 0, self::MAX_VALUE_LENGTH)];
+            if (\strlen(\rawurlencode(\json_encode($candidate, \JSON_THROW_ON_ERROR))) > self::MAX_COOKIE_LENGTH) {
+                break;
+            }
+            $interests = $candidate;
         }
 
         if ([] !== $interests) {

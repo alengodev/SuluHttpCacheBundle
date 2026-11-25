@@ -19,15 +19,19 @@
     "require": {
         "php": "^8.2",
         "friendsofsymfony/http-cache": "^3.0",
+        "guzzlehttp/promises": "^3.2",
+        "nyholm/psr7": "^1.8",
         "symfony/config": "^7.2 || ^8.0",
         "symfony/dependency-injection": "^7.2 || ^8.0",
         "symfony/event-dispatcher": "^7.2 || ^8.0",
+        "symfony/http-client": "^8.1",
         "symfony/http-foundation": "^7.2 || ^8.0",
         "symfony/http-kernel": "^7.2 || ^8.0",
         "symfony/yaml": "^7.2 || ^8.0"
     },
     "require-dev": {
         "php-cs-fixer/shim": "^3.93",
+        "phpunit/phpunit": "^11.5 || ^12.0",
         "rector/rector": "^2.3"
     },
     "scripts": {
